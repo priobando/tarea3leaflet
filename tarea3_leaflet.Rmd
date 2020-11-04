@@ -1,0 +1,284 @@
+---
+title: "PF-0953 Programación geoespacial en R"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Descripción general
+
+En esta tarea, desarrollará un mapa para la Web mediante la biblioteca Leaflet. El resultado final será un documento en la sintaxis R Markdown publicado en GitHub Pages.
+
+## Fecha de entrega y entregables
+
+La fecha límite de entrega es el miércoles 4 de noviembre de 2020 antes de las 5:00 p.m. NO SE ACEPTARÁN ENTREGAS DESPUÉS DE ESA FECHA Y HORA. Debe enviarle al profesor por correo electrónico la dirección del sitio en GitHub Pages resultante.
+
+El proyecto     puede realizarse en grupos de un máximo de tres estudiantes. Por favor copie el mensaje de correo a las direcciones de todos los integrantes del grupo e incluya los nombres de los integrantes en los metadatos del documento. Debe enviarse solamente un mensaje por grupo.
+
+## Desarrollo
+
+Desarrolle un mapa en Leaflet con las siguientes características (el valor porcentual de cada aspecto a evaluar se muestra entre paréntesis):
+
+(5%) Tres capas base (puede elegirlas).
+
+```{r}
+# Importación de datos de casos recuperados, fallecidos, activos y positivos de Covid-19 en los países de Centroamérica
+
+cr_covid19_recuperados <- read.csv(file='https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-recuperados-cantones-20201027.csv')
+
+
+cr_covid19_fallecidos <- read.csv(file='https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-fallecidos-cantones-20201027.csv')
+
+
+cr_covid19_activos <- read.csv(file='https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-activos-cantones-20201027.csv')
+
+
+cr_covid19_positivos <- read.csv(file='https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-positivos-cantones-20201027.csv')
+
+
+```
+
+5%) Tres capas base (puede elegirlas).
+
+```{r}
+
+
+```
+Cuatro capas sobrepuestas (overlay):
+
+(15%) Mapa de coropletas de casos positivos de COVID-19 en cantones de Costa Rica.
+
+```{r}
+
+```
+
+
+(15%) Mapa de coropletas de casos activos de COVID-19 en cantones de Costa Rica.
+
+(15%) Mapa de coropletas de casos recuperados de COVID-19 en cantones de Costa Rica.
+
+(15%) Mapa de coropletas de casos fallecidos de COVID-19 en cantones de Costa Rica.
+
+(10%) Leyendas que muestren el significado de los colores en cada capa sobrepuesta.
+
+(10%) Control de capas para activar y desactivar las capas base y sobrepuestas.
+
+(5%) Control de escala.
+
+(10%) Al hacer clic sobre el polígono de un cantón, debe mostrarse el nombre del cantón y la cantidad de casos correspondiente a la capa (positivos, activos, recuperados o fallecidos).
+
+```{r}
+
+library(leaflet)
+
+library(sf)
+
+library(tidyr)
+
+library(dplyr)
+
+#Capa de cantones ACTIVOS
+
+sf_cantones_activos <-
+  st_read(
+          "https://raw.githubusercontent.com/taller-r-jornadas-sigtd-2020/datos/master/cantones.geojson", 
+          quiet = T
+)
+
+cr_covid19_activos <- 
+  read.csv(
+    "https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-activos-cantones-20201020.csv"
+    )
+
+#Fechas en filas 
+cr_covid19_activos <-
+  cr_covid19_activos %>%
+  pivot_longer(
+    cols = c(-cod_provin, -provincia, -cod_canton, -canton), 
+    names_to = "fecha", 
+    values_to = "activos"
+  )
+
+#Ultima fecha de activos
+ cr_covid19_activos_ultimafecha <- 
+  cr_covid19_activos %>%
+  filter(fecha == max(fecha, na.rm = TRUE)) %>%
+  select(cod_canton, activos)
+ 
+ # Objeto sf de casos activos en cantones en la última fecha
+cr_covid19_activos_ultimafecha <-
+  left_join(sf_cantones_activos, cr_covid19_activos_ultimafecha, by = c('cod_canton')) %>%
+  arrange(desc(activos))
+
+#Capa de cantones POSITIVOS
+
+sf_cantones_positivos <-
+  st_read(
+          "https://raw.githubusercontent.com/taller-r-jornadas-sigtd-2020/datos/master/cantones.geojson", 
+          quiet = T
+)
+
+cr_covid19_positivos <- 
+  read.csv(
+    "https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-positivos-cantones-20201027.csv"
+    )
+
+#Fechas en filas 
+cr_covid19_positivos <-
+  cr_covid19_positivos %>%
+  pivot_longer(
+    cols = c(-cod_provin, -provincia, -cod_canton, -canton), 
+    names_to = "fecha", 
+    values_to = "positivos"
+  )
+
+#Ultima fecha de positivos
+ cr_covid19_positivos_ultimafecha <- 
+  cr_covid19_positivos %>%
+  filter(fecha == max(fecha, na.rm = TRUE)) %>%
+  select(cod_canton, positivos)
+ 
+ # Objeto sf de casos positivos en cantones en la última fecha
+cr_covid19_positivos_ultimafecha <-
+  left_join(sf_cantones_positivos, cr_covid19_positivos_ultimafecha, by = c('cod_canton')) %>%
+  arrange(desc(positivos))
+
+#Capa de cantones RECUPERADOS
+
+sf_cantones_recuperados <-
+  st_read(
+          "https://raw.githubusercontent.com/taller-r-jornadas-sigtd-2020/datos/master/cantones.geojson", 
+          quiet = T
+)
+
+cr_covid19_recuperados <- 
+  read.csv(
+    "https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-recuperados-cantones-20201027.csv"
+    )
+
+#Fechas en filas 
+cr_covid19_recuperados <-
+  cr_covid19_recuperados %>%
+  pivot_longer(
+    cols = c(-cod_provin, -provincia, -cod_canton, -canton), 
+    names_to = "fecha", 
+    values_to = "recuperados"
+  )
+
+#Ultima fecha de recuperados
+ cr_covid19_recuperados_ultimafecha <- 
+  cr_covid19_recuperados %>%
+  filter(fecha == max(fecha, na.rm = TRUE)) %>%
+  select(cod_canton, recuperados)
+ 
+ # Objeto sf de casos recuperados en cantones en la última fecha
+cr_covid19_recuperados_ultimafecha <-
+  left_join(sf_cantones_recuperados, cr_covid19_recuperados_ultimafecha, by = c('cod_canton')) %>%
+  arrange(desc(recuperados))
+
+#Capa de cantones FALLECIDOS
+
+sf_cantones_fallecidos <-
+  st_read(
+          "https://raw.githubusercontent.com/taller-r-jornadas-sigtd-2020/datos/master/cantones.geojson", 
+          quiet = T
+)
+
+
+cr_covid19_fallecidos <- 
+  read.csv(
+    "https://raw.githubusercontent.com/pf0953-programaciongeoespacialr-2020/datos/master/covid19/ms/covid19-fallecidos-cantones-20201027.csv"
+    )
+
+#Fechas en filas 
+cr_covid19_fallecidos <-
+  cr_covid19_fallecidos %>%
+  pivot_longer(
+    cols = c(-cod_provin, -provincia, -cod_canton, -canton), 
+    names_to = "fecha", 
+    values_to = "fallecidos"
+  )
+
+#Ultima fecha de fallecidos
+ cr_covid19_fallecidos_ultimafecha <- 
+  cr_covid19_fallecidos %>%
+  filter(fecha == max(fecha, na.rm = TRUE)) %>%
+  select(cod_canton, fallecidos)
+ 
+ # Objeto sf de casos fallecidos en cantones en la última fecha
+cr_covid19_fallecidos_ultimafecha <-
+  left_join(sf_cantones_fallecidos, cr_covid19_fallecidos_ultimafecha, by = c('cod_canton')) %>%
+  arrange(desc(fallecidos))
+
+#Mapa de coropletas casos completo
+
+bins <- c(0, 100, 500, 1000, 2000, Inf)
+paleta_azul <- colorBin("PuBuGn", domain = cr_covid19_activos_ultimafecha$activos, bins = bins)
+
+leaflet(cr_covid19_activos_ultimafecha) %>% 
+  fitBounds(lng1 = -86, lng2 = -82, lat1 = 8, lat2 = 11) %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes de ESRI") %>% 
+  addProviderTiles(providers$Stamen.TonerLite, group = "Stamen Toner Lite") %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik, group = "OpenStreetMap") %>%
+  addPolygons(fillColor = ~paleta_azul(activos), stroke=T, fillOpacity = 1,
+              color="black", weight=0.2, opacity= 0.5,
+              group = "Cantones_activos",
+              popup = paste(
+                        "Provincia: ", cr_covid19_activos_ultimafecha$provincia, "<br>",
+                        "Cantón: ", cr_covid19_activos_ultimafecha$canton, "<br>",
+                        "activos: ", cr_covid19_activos_ultimafecha$activos
+                      )
+  ) %>%
+  addLegend("bottomright", pal = paleta_azul, values = ~activos,
+    title = "Casos Covid19",
+    opacity = 1
+  ) %>%  
+  addLayersControl(
+    baseGroups = c("OpenStreetMap","Stamen Toner Lite", "Imágenes de ESRI"),
+    overlayGroups = c("Cantones"),
+    options = layersControlOptions(collapsed = TRUE)    
+  ) %>%
+ addPolygons(fillColor = ~paleta_azul(activos), stroke=T, fillOpacity = 1,
+              color="black", weight=0.2, opacity= 0.5,
+              group = "Cantones_positivos",
+              popup = paste(
+                        "Provincia: ", cr_covid19_positivos_ultimafecha$provincia, "<br>",
+                        "Cantón: ", cr_covid19_positivos_ultimafecha$canton, "<br>",
+                        "Positivos: ", cr_covid19_positivos_ultimafecha$positivos
+                      )
+  ) %>%
+  addPolygons(fillColor = ~paleta_azul(activos), stroke=T, fillOpacity = 1,
+              color="black", weight=0.2, opacity= 0.5,
+              group = "Cantones_recuperados",
+              popup = paste(
+                        "Provincia: ", cr_covid19_recuperados_ultimafecha$provincia, "<br>",
+                        "Cantón: ", cr_covid19_recuperados_ultimafecha$canton, "<br>",
+                        "Recuperados: ", cr_covid19_recuperados_ultimafecha$recuperados
+                      )
+  ) %>%
+  addPolygons(fillColor = ~paleta_azul(activos), stroke=T, fillOpacity = 1,
+              color="black", weight=0.2, opacity= 0.5,
+              group = "Cantones_fallecidos",
+              popup = paste(
+                        "Provincia: ", cr_covid19_fallecidos_ultimafecha$provincia, "<br>",
+                        "Cantón: ", cr_covid19_fallecidos_ultimafecha$canton, "<br>",
+                        "Fallecidos: ", cr_covid19_fallecidos_ultimafecha$fallecidos
+                      )
+  ) %>%
+ addLayersControl(
+    baseGroups = c("OpenStreetMap","Stamen Toner Lite", "Imágenes de ESRI"),
+    overlayGroups = c("Cantones_activos","Cantones_positivos", "Casos_recuperados", "Casos_fallecidos"),
+    options = layersControlOptions(collapsed = TRUE)    
+  ) %>%
+  addMiniMap(
+    toggleDisplay = TRUE,
+    position = "bottomleft",
+    tiles = providers$OpenStreetMap.Mapnik
+  )
+
+
+
+```
+
